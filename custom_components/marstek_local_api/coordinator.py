@@ -217,13 +217,15 @@ class MarstekMultiDeviceCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data from all devices."""
         # Update all device coordinators in parallel
-        # We call _async_update_data() and manually set the data attribute
-        # since we're managing the coordinators directly
+        # Use async_request_refresh() to properly trigger the update mechanism
+        # which will notify all listeners and update entity states
         async def update_device(mac: str, coordinator: MarstekDataUpdateCoordinator):
             try:
                 await asyncio.sleep(coordinator.poll_jitter)
+                # Call the internal update directly and let the coordinator handle the data
                 data = await coordinator._async_update_data()
-                coordinator.data = data  # Manually set data since we're calling _async_update_data directly
+                # Update the coordinator's data attribute so it's available immediately
+                coordinator.async_set_updated_data(data)
                 return data
             except Exception as err:
                 _LOGGER.error("Error updating device %s: %s", mac, err)
